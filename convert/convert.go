@@ -30,7 +30,7 @@ func GetAssetsJPY(symbol string, assets []gmocoin.Asset) int{
 }
 
 func FetchData() ([]gmocoin.Asset, error){
-	apiClient := gmocoin.NewCoinAPIClient(appconfig.AppConfig.ApiKey, appconfig.AppConfig.ApiSecret)
+	apiClient := gmocoin.NewCoinAPIClient(appconfig.AppConfig.GmoapiKey, appconfig.AppConfig.GmoapiSecret)
 	assetsResponse, _ := apiClient.GetAssets()
 
 	var Assets []gmocoin.Asset
