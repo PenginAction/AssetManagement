@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assets</title>
+    <link rel="stylesheet" type="text/css" href="css/styles.css">
+    <script>
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            document.getElementById('time').innerText = timeString;
+        }
+
+        setInterval(updateTime, 1000);
+    </script>
+</head>
+<body>
+    <h1>資産管理アプリ</h1>
+    <p>現在時刻: <span id="time"></span></p>
+    <h2>総資産: <span id="total-jpy">{{.TotalJPY}}円</span></h2>
+    <table>
+        <thead>
+            <tr>
+                <th>仮想通貨</th>
+                <th>資産 (JPY)</th>
+            </tr>
+        </thead>
+        <tbody id="assets">
+            {{range .Assets}}
+            <tr>
+                <td>{{.Symbol}}</td>
+                <td>{{.AmountJPY}}円</td>
+            </tr>
+            {{end}}
+        </tbody>
+    </table>
+    <script>
+        function fetchAndUpdateData() {
+            fetch("/api/assets")
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("total-jpy").innerHTML = `${data.total_jpy}円`;
+                    const assets = data.assets;
+                    const assetsTbody = document.getElementById("assets");
+                    assetsTbody.innerHTML = '';
+
+                    for (const asset of assets) {
+                        const row = document.createElement("tr");
+                        const symbolCell = document.createElement("td");
+                        const amountJPYCell = document.createElement("td");
+
+                        symbolCell.innerText = asset.symbol;
+                        amountJPYCell.innerText = `${asset.amount_jpy}円`;
+
+                        row.appendChild(symbolCell);
+                        row.appendChild(amountJPYCell);
+
+                        assetsTbody.appendChild(row);
+                    }
+                })
+                .catch(error => console.error(error));
+        }
+
+        setInterval(fetchAndUpdateData, 10000);
+    </script>
+</body>
+</html>
