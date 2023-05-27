@@ -10,11 +10,10 @@ import (
 type Configuration struct {
 	GmoapiKey    string
 	GmoapiSecret string
-	Symbol1      string
-	Symbol2      string
+	GmoCoinSymbols []string
 	BitapiKey    string
 	BitapiSecret string
-	Symbol3      string
+	BittradeSymbols []string
 	LogFile      string
 	Dbuser       string
 	Dbpass       string
@@ -36,11 +35,10 @@ func init() {
 	AppConfig = Configuration{
 		GmoapiKey:    cfg.Section("GMOCoin").Key("gmoapi_key").String(),
 		GmoapiSecret: cfg.Section("GMOCoin").Key("gmoapi_secret").String(),
-		Symbol1:      cfg.Section("GMOCoin").Key("gmosymbol1").String(),
-		Symbol2:      cfg.Section("GMOCoin").Key("gmosymbol2").String(),
-		Symbol3:      cfg.Section("GMOCoin").Key("gmosymbol3").String(),
+		GmoCoinSymbols: cfg.Section("GMOCoin").Key("Symbols").Strings(","),
 		BitapiKey:    cfg.Section("bittrade").Key("bitapi_key").String(),
 		BitapiSecret: cfg.Section("bittrade").Key("bitapi_secret").String(),
+		BittradeSymbols: cfg.Section("bittrade").Key("Symbols").Strings(","),
 		LogFile:      cfg.Section("assetmanagement").Key("log_file").String(),
 		Dbuser:       cfg.Section("database").Key("dbuser").String(),
 		Dbpass:       cfg.Section("database").Key("dbpass").String(),
