@@ -14,12 +14,11 @@ import (
 	"time"
 )
 
-
 const API_URL = "https://api-cloud.bittrade.co.jp"
 
 type Client struct {
-	AccessKey string  
-	SecretKey string  
+	AccessKey string
+	SecretKey string
 }
 
 func NewClient(accessKey, secretKey string) *Client {
@@ -83,12 +82,11 @@ func (c *Client) sendRequest(path string) (string, error) {
 	return string(body), nil
 }
 
-
 type Account struct {
 	Status string `json:"status"`
 	Data   []struct {
-		ID     int    `json:"id"`
-		Type   string `json:"type"`
+		ID      int    `json:"id"`
+		Type    string `json:"type"`
 		Subtype string `json:"subtype"`
 		State   string `json:"state"`
 	} `json:"data"`
@@ -109,16 +107,45 @@ func (c *Client) GetUserAccount() (*Account, error) {
 	return &account, nil
 }
 
-func (c *Client) GetUserBalance() (string, error) {
+type AssetList struct {
+	Currency string `json:"currency"`
+	Type     string `json:"type"`
+	Balance  string `json:"balance"`
+}
+
+type Asset struct {
+	Id    int         `json:"id"`
+	Type  string      `json:"type"`
+	State string      `json:"state"`
+	List  []AssetList `json:"list"`
+}
+
+type AssetsResponse struct {
+	Status string `json:"status"`
+	Data   Asset  `json:"data"`
+}
+
+func (c *Client) GetUserBalance() (*AssetsResponse, error) {
 	account, err := c.GetUserAccount()
-	if err != nil{
-		return "", err
+	if err != nil {
+		return nil, err
 	}
 
-	if len(account.Data) == 0{
-		return "", fmt.Errorf("no account data avaliable")
+	if len(account.Data) == 0 {
+		return nil, fmt.Errorf("no account data avaliable")
 	}
 
 	path := fmt.Sprintf("/v1/account/accounts/%d/balance", account.Data[0].ID)
-	return c.sendRequest(path)
+	resp, err := c.sendRequest(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var balance AssetsResponse
+	err = json.Unmarshal([]byte(resp), &balance)
+	if err != nil {
+		return nil, err
+	}
+
+	return &balance, nil
 }
