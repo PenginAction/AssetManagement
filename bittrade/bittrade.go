@@ -149,3 +149,39 @@ func (c *Client) GetUserBalance() (*AssetsResponse, error) {
 
 	return &balance, nil
 }
+
+type Ticker struct {
+	Symbol   string  `json:"symbol"`
+	Open     float64 `json:"open"`
+	High     float64 `json:"high"`
+	Low      float64 `json:"low"`
+	Close    float64 `json:"close"`
+	Amount   float64 `json:"amount"`
+	Vol      float64 `json:"vol"`
+	Count    int     `json:"count"`
+	Bid      float64 `json:"bid"`
+	BidSize  float64 `json:"bidSize"`
+	Ask      float64 `json:"ask"`
+	AskSize  float64 `json:"askSize"`
+}
+
+type TickersResponse struct {
+	Status string   `json:"status"`
+	Data   []Ticker `json:"data"`
+}
+
+//全取引ペアの相場情報
+func (c *Client) GetMarketTickers() (*TickersResponse, error) {
+	resp, err := c.sendRequest("/market/tickers")
+	if err != nil {
+		return nil, err
+	}
+
+	var tickers TickersResponse
+	err = json.Unmarshal([]byte(resp), &tickers)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tickers, nil
+}
