@@ -108,3 +108,17 @@ func (c *Client) GetUserAccount() (*Account, error) {
 
 	return &account, nil
 }
+
+func (c *Client) GetUserBalance() (string, error) {
+	account, err := c.GetUserAccount()
+	if err != nil{
+		return "", err
+	}
+
+	if len(account.Data) == 0{
+		return "", fmt.Errorf("no account data avaliable")
+	}
+
+	path := fmt.Sprintf("/v1/account/accounts/%d/balance", account.Data[0].ID)
+	return c.sendRequest(path)
+}
