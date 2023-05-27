@@ -2,25 +2,31 @@ package convert
 
 import (
 	"assetmanagement/appconfig"
+	"assetmanagement/bittrade"
 	"assetmanagement/gmocoin"
-	"assetmanagement/utils"
 	"encoding/json"
+	"fmt"
 	"log"
+
+	// "log"
 	"strconv"
 	"time"
 )
 
-type AssetSummary struct{
-	Time time.Time `json:"time"`
-	BTC_JPY int `json:"btc_jpy"`
-	XEM_JPY int `json:"xem_jpy"`
-	ADA_JPY int `json:"ada_jpy"`
-	Total_JPY int `json:"total_jpy"`
+type AssetSummary struct {
+	Time       time.Time      `json:"time"`
+	Assets_JPY map[string]int `json:"assets_jpy"`
+	Total_JPY  int            `json:"total_jpy"`
 }
 
-func GetAssetsJPY(symbol string, assets []gmocoin.Asset) int{
-	for _, asset := range assets{
-		if asset.Symbol == symbol{
+func (a *AssetSummary) AddAssetsJPY(symbol string, value int) {
+	a.Assets_JPY[symbol] = value
+	a.Total_JPY += value
+}
+
+func GetAssetsJPY(symbol string, assets []gmocoin.Asset) int {
+	for _, asset := range assets {
+		if asset.Symbol == symbol {
 			amount, _ := strconv.ParseFloat(asset.Amount, 64)
 			conversionRate, _ := strconv.ParseFloat(asset.ConversionRate, 64)
 			return int(amount * conversionRate)
@@ -29,7 +35,33 @@ func GetAssetsJPY(symbol string, assets []gmocoin.Asset) int{
 	return 0
 }
 
-func FetchData() ([]gmocoin.Asset, error){
+func getConversionRate(bitClient *bittrade.Client, symbol string) (float64, error) {
+	tickers, err := bitClient.GetMarketTickers()
+	if err != nil {
+		return 0, err
+	}
+
+	for _, ticker := range tickers.Data {
+		if ticker.Symbol == symbol+"jpy" {
+			return ticker.Close, nil
+		}
+	}
+
+	return 0, fmt.Errorf("conversion rate not found for symbol: %s", symbol)
+}
+
+func GetAssetsJPYBittrade(symbol string, assetsBittrade *bittrade.AssetsResponse, bitClient *bittrade.Client) int {
+	for _, list := range assetsBittrade.Data.List {
+		if list.Currency == symbol {
+			conversionRate, _ := getConversionRate(bitClient, symbol)
+			balance, _ := strconv.ParseFloat(list.Balance, 64)
+			return int(balance * conversionRate)
+		}
+	}
+	return 0
+}
+
+func FetchDataGMOCoin() ([]gmocoin.Asset, error) {
 	apiClient := gmocoin.NewCoinAPIClient(appconfig.AppConfig.GmoapiKey, appconfig.AppConfig.GmoapiSecret)
 	assetsResponse, _ := apiClient.GetAssets()
 
@@ -45,32 +77,50 @@ func FetchData() ([]gmocoin.Asset, error){
 	return Assets, nil
 }
 
-func FetchDataSummary() (AssetSummary, error) {
-	assets, err := FetchData()
-	if err != nil {
-		return AssetSummary{}, err
+func FetchDataBittrade() (*bittrade.AssetsResponse, error) {
+	apiClient := bittrade.NewClient(appconfig.AppConfig.BitapiKey, appconfig.AppConfig.BitapiSecret)
+	assetsResponse, _ := apiClient.GetUserBalance()
+
+	if assetsResponse.Status == "ok" {
+		return assetsResponse, nil
 	}
 
-	btc_jpy := GetAssetsJPY(appconfig.AppConfig.Symbol1, assets)
-	xem_jpy := GetAssetsJPY(appconfig.AppConfig.Symbol2, assets)
-	ada_jpy := GetAssetsJPY(appconfig.AppConfig.Symbol3, assets)
-	total_jpy := utils.Sum(btc_jpy, xem_jpy, ada_jpy)
+	return nil, fmt.Errorf("failed to fetch data from BitTrade")
+}
+
+func FetchDataSummary() (AssetSummary, error) {
+	assetsGmocoin, _ := FetchDataGMOCoin()
+	assetsBittrade, _ := FetchDataBittrade()
+
+	var total_jpy int
+	assets := make(map[string]int)
+
+	for _, symbol := range appconfig.AppConfig.GmoCoinSymbols {
+		jpy := GetAssetsJPY(symbol, assetsGmocoin)
+		assets[symbol] = jpy
+		total_jpy += jpy
+	}
+
+	apiClientBittrade := bittrade.NewClient(appconfig.AppConfig.BitapiKey, appconfig.AppConfig.BitapiSecret)
+
+	for _, symbol := range appconfig.AppConfig.BittradeSymbols {
+		jpy := GetAssetsJPYBittrade(symbol, assetsBittrade, apiClientBittrade)
+		assets[symbol] = jpy
+		total_jpy += jpy
+	}
 
 	summary := AssetSummary{
-		Time:      time.Now(),
-		BTC_JPY:   btc_jpy,
-		XEM_JPY:   xem_jpy,
-		ADA_JPY:   ada_jpy,
-		Total_JPY: total_jpy,
+		Time:       time.Now(),
+		Assets_JPY: assets,
+		Total_JPY:  total_jpy,
 	}
 
-	jsonData, err := json.MarshalIndent(summary, "", " ")
+	summaryJSON, err := json.MarshalIndent(summary, "", "  ")
 	if err != nil {
-		log.Println("Error marshaling data", err)
-		return AssetSummary{}, err
+		log.Fatalf("Failed to marshal summary: %v", err)
 	}
 
-	log.Println(string(jsonData))
+	log.Println(string(summaryJSON))
 
 	return summary, nil
 }
