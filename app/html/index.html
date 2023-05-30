@@ -20,6 +20,8 @@
     <h1>資産管理アプリ</h1>
     <p>現在時刻: <span id="time"></span></p>
     <h2>総資産: <span id="total-jpy">{{.TotalJPY}}円</span></h2>
+
+    <h2>GMOコイン</h2>
     <table>
         <thead>
             <tr>
@@ -27,43 +29,78 @@
                 <th>資産 (JPY)</th>
             </tr>
         </thead>
-        <tbody id="assets">
-            {{range .Assets}}
+        <tbody id="gmocoin-assets">
+            <!-- {{range .Assets}}
             <tr>
                 <td>{{.Symbol}}</td>
                 <td>{{.AmountJPY}}円</td>
             </tr>
-            {{end}}
+            {{end}} -->
         </tbody>
     </table>
+
+    <h2>Bittrade</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>仮想通貨</th>
+                <th>資産 (JPY)</th>
+            </tr>
+        </thead>
+        <tbody id="bittrade-assets">
+            <!-- {{range .Assets}}
+            <tr>
+                <td>{{.Symbol}}</td>
+                <td>{{.AmountJPY}}円</td>
+            </tr>
+            {{end}} -->
+        </tbody>
+    </table>
+
     <script>
         function fetchAndUpdateData() {
             fetch("/api/assets")
                 .then(response => response.json())
                 .then(data => {
                     document.getElementById("total-jpy").innerHTML = `${data.total_jpy}円`;
-                    const assets = data.assets;
-                    const assetsTbody = document.getElementById("assets");
-                    assetsTbody.innerHTML = '';
-
-                    for (const asset of assets) {
+    
+                    const gmocoinAssetsTbody = document.getElementById("gmocoin-assets");
+                    gmocoinAssetsTbody.innerHTML = '';
+                    for (const asset of data.gmocoin_assets) {
                         const row = document.createElement("tr");
                         const symbolCell = document.createElement("td");
                         const amountJPYCell = document.createElement("td");
-
+    
                         symbolCell.innerText = asset.symbol;
                         amountJPYCell.innerText = `${asset.amount_jpy}円`;
-
+    
                         row.appendChild(symbolCell);
                         row.appendChild(amountJPYCell);
-
-                        assetsTbody.appendChild(row);
+    
+                        gmocoinAssetsTbody.appendChild(row);
+                    }
+    
+                    const bittradeAssetsTbody = document.getElementById("bittrade-assets");
+                    bittradeAssetsTbody.innerHTML = '';
+                    for (const asset of data.bittrade_assets) {
+                        const row = document.createElement("tr");
+                        const symbolCell = document.createElement("td");
+                        const amountJPYCell = document.createElement("td");
+    
+                        symbolCell.innerText = asset.symbol;
+                        amountJPYCell.innerText = `${asset.amount_jpy}円`;
+    
+                        row.appendChild(symbolCell);
+                        row.appendChild(amountJPYCell);
+    
+                        bittradeAssetsTbody.appendChild(row);
                     }
                 })
                 .catch(error => console.error(error));
         }
-
+    
         setInterval(fetchAndUpdateData, 10000);
     </script>
+    
 </body>
 </html>

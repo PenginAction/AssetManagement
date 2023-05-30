@@ -14,15 +14,16 @@ import (
 )
 
 type AssetSummary struct {
-	Time       time.Time      `json:"time"`
-	Assets_JPY map[string]int `json:"assets_jpy"`
-	Total_JPY  int            `json:"total_jpy"`
+	Time               time.Time      `json:"time"`
+	GMOCoinAssets_JPY  map[string]int `json:"gmocoin_assets_jpy"`
+	BittradeAssets_JPY map[string]int `json:"bittrade_assets_jpy"`
+	Total_JPY          int            `json:"total_jpy"`
 }
 
-func (a *AssetSummary) AddAssetsJPY(symbol string, value int) {
-	a.Assets_JPY[symbol] = value
-	a.Total_JPY += value
-}
+// func (a *AssetSummary) AddAssetsJPY(symbol string, value int) {
+// 	a.Assets_JPY[symbol] = value
+// 	a.Total_JPY += value
+// }
 
 func GetAssetsJPY(symbol string, assets []gmocoin.Asset) int {
 	for _, asset := range assets {
@@ -93,11 +94,12 @@ func FetchDataSummary() (AssetSummary, error) {
 	assetsBittrade, _ := FetchDataBittrade()
 
 	var total_jpy int
-	assets := make(map[string]int)
+	gmoassets := make(map[string]int)
+	bitassets := make(map[string]int)
 
 	for _, symbol := range appconfig.AppConfig.GmoCoinSymbols {
 		jpy := GetAssetsJPY(symbol, assetsGmocoin)
-		assets[symbol] = jpy
+		gmoassets[symbol] = jpy
 		total_jpy += jpy
 	}
 
@@ -105,14 +107,16 @@ func FetchDataSummary() (AssetSummary, error) {
 
 	for _, symbol := range appconfig.AppConfig.BittradeSymbols {
 		jpy := GetAssetsJPYBittrade(symbol, assetsBittrade, apiClientBittrade)
-		assets[symbol] = jpy
+		bitassets[symbol] = jpy
 		total_jpy += jpy
 	}
 
 	summary := AssetSummary{
-		Time:       time.Now(),
-		Assets_JPY: assets,
-		Total_JPY:  total_jpy,
+		Time: time.Now(),
+		// Assets_JPY: assets,
+		GMOCoinAssets_JPY:  gmoassets,
+		BittradeAssets_JPY: bitassets,
+		Total_JPY:          total_jpy,
 	}
 
 	summaryJSON, err := json.MarshalIndent(summary, "", "  ")
